@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from .models import load_model, correct_text
+from models import load_model, correct_text
+import torch
 import logging
 
 app = FastAPI(
