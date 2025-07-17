@@ -1,11 +1,12 @@
 # Estágio de construção
 FROM python:3.10-slim as builder
 
-# Instala dependências do sistema necessárias
+# 1. Instala dependências do sistema
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
     build-essential \
+    git \
     libopenblas-dev \
     gfortran \
     libhdf5-dev \
@@ -14,42 +15,42 @@ RUN apt-get update && \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Instala o Poetry
+# 2. Instala o Poetry
 RUN pip install --no-cache-dir "poetry==1.8.2"
 
-# Configura o ambiente do Poetry
-ENV POETRY_HOME=/opt/poetry
-ENV POETRY_VIRTUALENVS_CREATE=false
-ENV PATH="$POETRY_HOME/bin:$PATH"
+# 3. Configura ambiente
+ENV POETRY_VIRTUALENVS_CREATE=false \
+    PATH="/root/.local/bin:$PATH"
 
-# Diretório de trabalho
+# 4. Diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos de dependências
-COPY pyproject.toml poetry.lock ./
+# 5. Copia APENAS os arquivos de dependências
+COPY pyproject.toml poetry.lock* ./
 
-# Instala dependências
-RUN poetry install --no-interaction --no-ansi --only main --no-root
+# 6. Instala dependências (cria lock se não existir)
+RUN if [ -f poetry.lock ]; then poetry install --no-interaction --no-ansi --only main; \
+    else poetry lock --no-update && poetry install --no-interaction --no-ansi --only main; fi
 
 # Estágio final
 FROM nvcr.io/nvidia/pytorch:23.10-py3
 
-# Configura variáveis de ambiente
+# 1. Configura ambiente
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Copia as dependências instaladas
+# 2. Copia dependências instaladas
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Diretório de trabalho
+# 3. Diretório de trabalho
 WORKDIR /app
 
-# Copia o código da aplicação
+# 4. Copia aplicação
 COPY ./app ./app
 
-# Porta exposta
+# 5. Porta exposta
 EXPOSE 8000
 
-# Comando para iniciar a aplicação
+# 6. Comando de inicialização
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
