@@ -15,8 +15,8 @@ RUN apt-get update && \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Instala o Poetry
-RUN pip install --no-cache-dir "poetry==1.8.2"
+# 2. Instala o Poetry corretamente
+RUN pip install --no-cache-dir poetry
 
 # 3. Configura ambiente
 ENV POETRY_VIRTUALENVS_CREATE=false \
@@ -26,11 +26,10 @@ ENV POETRY_VIRTUALENVS_CREATE=false \
 WORKDIR /app
 
 # 5. Copia APENAS os arquivos de dependências
-COPY pyproject.toml poetry.lock* ./
+COPY pyproject.toml .
 
-# 6. Instala dependências (cria lock se não existir)
-RUN if [ -f poetry.lock ]; then poetry install --no-interaction --no-ansi --only main; \
-    else poetry lock --no-update && poetry install --no-interaction --no-ansi --only main; fi
+# 6. Instala dependências sem lockfile
+RUN poetry install --no-interaction --no-ansi --only main
 
 # Estágio final
 FROM nvcr.io/nvidia/pytorch:23.10-py3
@@ -40,8 +39,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 # 2. Copia dependências instaladas
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /root/.cache/pypoetry/virtualenvs /root/.cache/pypoetry/virtualenvs
+COPY --from=builder /root/.local /root/.local
+ENV PATH="/root/.local/bin:$PATH"
 
 # 3. Diretório de trabalho
 WORKDIR /app
