@@ -1,14 +1,21 @@
 # Estágio de construção
 FROM python:3.10-slim as builder
 
-# Instala dependências do sistema
+# Instala dependências do sistema necessárias
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl build-essential && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    libopenblas-dev \
+    gfortran \
+    libhdf5-dev \
+    libxml2-dev \
+    libxslt-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Instala o Poetry
-ENV POETRY_VERSION=1.8.2
-RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+RUN pip install --no-cache-dir "poetry==1.8.2"
 
 # Configura o ambiente do Poetry
 ENV POETRY_HOME=/opt/poetry
