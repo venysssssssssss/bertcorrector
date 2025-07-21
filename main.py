@@ -19,12 +19,16 @@ async def startup_event():
         logging.error(f"Erro ao carregar modelo: {str(e)}")
         raise RuntimeError("Falha na inicialização do modelo")
 
+# Altere a definição do endpoint
 @app.post("/corrigir")
-async def corrigir_texto(text: str, threshold: float = 0.3):
-    if not text.strip():
-        raise HTTPException(status_code=400, detail="Texto vazio fornecido")
-    
+async def corrigir_texto(request: dict):  # Recebe o JSON completo
     try:
+        text = request.get("text", "")
+        threshold = request.get("threshold", 0.3)
+        
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="Texto vazio fornecido")
+        
         resultado = correct_text(
             model=app.state.model,
             tokenizer=app.state.tokenizer,
@@ -39,7 +43,3 @@ async def corrigir_texto(text: str, threshold: float = 0.3):
     except Exception as e:
         logging.error(f"Erro na correção: {str(e)}")
         raise HTTPException(status_code=500, detail="Erro interno no processamento")
-
-@app.get("/health")
-async def health_check():
-    return {"status": "online", "gpu": str(torch.cuda.is_available())}
