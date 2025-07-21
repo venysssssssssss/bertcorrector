@@ -214,20 +214,22 @@ services:
 
   # NGINX - Proxy Reverso e Load Balancer
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./configs/nginx
+      dockerfile: Dockerfile
     container_name: nginx-proxy
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./configs/nginx:/etc/nginx/conf.d:ro
-      - ./configs/ssl:/etc/ssl:ro
       - nginx-logs:/var/log/nginx
     networks:
       - correction-network
+      - monitoring-network
     restart: unless-stopped
     depends_on:
       - api-gateway
+      - grafana
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
