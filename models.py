@@ -12,12 +12,15 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Dicionário de correções comuns integrado
 COMMON_CORRECTIONS = {
-    # Concordância verbal
+    # Concordância verbal - frases completas
     'eu gosta': 'eu gosto',
     'tu gosta': 'tu gostas',
     'nos fomos': 'nós fomos',
     'nos temos': 'nós temos',
     'voces tem': 'vocês têm',
+    
+    # Concordância verbal - palavras individuais
+    'gosta': 'gosto',  # quando usado com "eu"
     
     # Ortografia comum
     'dous': 'dois',
@@ -98,10 +101,27 @@ def get_direct_correction(phrase):
     phrase_lower = phrase.lower().strip()
     return COMMON_CORRECTIONS.get(phrase_lower)
 
-def get_word_correction(word):
-    """Busca correção para palavra individual"""
+def get_word_correction(word, context_before=""):
+    """Busca correção para palavra individual considerando contexto"""
     word_lower = word.lower().strip()
-    return COMMON_CORRECTIONS.get(word_lower)
+    
+    # Correções diretas
+    direct_correction = COMMON_CORRECTIONS.get(word_lower)
+    if direct_correction:
+        return direct_correction
+    
+    # Correções contextuais específicas
+    context_lower = context_before.lower().strip()
+    
+    # "eu gosta" -> "eu gosto"
+    if word_lower == 'gosta' and context_lower.endswith('eu'):
+        return 'gosto'
+    
+    # "nos" -> "nós" (pronome, não preposição)
+    if word_lower == 'nos' and (not context_lower or context_lower.split()[-1] not in ['de', 'da', 'do', 'das', 'dos']):
+        return 'nós'
+    
+    return None
 
 def correct_text(model, tokenizer, text, threshold=0.2):
     """
@@ -140,8 +160,9 @@ def correct_text(model, tokenizer, text, threshold=0.2):
             corrected_words.append(word)
             continue
         
-        # Verifica correção direta da palavra
-        direct_word_correction = get_word_correction(clean_word)
+        # Verifica correção direta da palavra com contexto
+        context_before = " ".join(words[:i]) if i > 0 else ""
+        direct_word_correction = get_word_correction(clean_word, context_before)
         if direct_word_correction:
             corrected_words.append(direct_word_correction + punctuation)
             logger.info(f"Correção de palavra: '{clean_word}' -> '{direct_word_correction}'")
