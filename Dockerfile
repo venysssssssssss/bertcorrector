@@ -9,11 +9,13 @@ WORKDIR /app
 
 # Instala dependências diretamente
 RUN pip install --no-cache-dir \
+    "numpy==1.24.4" \
     fastapi==0.110.0 \
     uvicorn[standard]==0.29.0 \
     transformers==4.40.0 \
     scipy==1.13.0 \
-    python-multipart==0.0.9
+    python-multipart==0.0.9 \
+    requests==2.31.0
 
 # Copia o código da aplicação
 COPY . .
