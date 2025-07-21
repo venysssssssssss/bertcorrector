@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rules lang="pt-BR" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="../rules.xsd">
+
+  <!-- Custom Portuguese Brazilian rules for LanguageTool -->
+  
+  <category id="CUSTOM_RULES" name="Regras Customizadas">
+    
+    <!-- Rule for common programming terms -->
+    <rule id="PROGRAMMING_TERMS" name="Termos de Programação">
+      <pattern>
+        <token regexp="yes">(python|javascript|docker|kubernetes|api|json|xml|html|css|sql)</token>
+      </pattern>
+      <message>Considere manter termos técnicos em inglês: <suggestion>\1</suggestion></message>
+      <short>Termos técnicos devem permanecer em inglês</short>
+      <example correction="">Eu programo em <marker>python</marker>.</example>
+    </rule>
+    
+    <!-- Rule for common Brazilian Portuguese mistakes -->
+    <rule id="MAIS_MAS" name="Confusão entre 'mais' e 'mas'">
+      <pattern>
+        <token>mais</token>
+        <token>também</token>
+      </pattern>
+      <message>Use 'mas também' em vez de 'mais também': <suggestion>mas também</suggestion></message>
+      <short>Confusão entre 'mais' e 'mas'</short>
+      <example correction="mas também">Ele é inteligente, <marker>mais também</marker> trabalhador.</example>
+    </rule>
+    
+    <!-- Rule for capitalization of proper nouns -->
+    <rule id="PROPER_NOUNS" name="Nomes Próprios">
+      <pattern>
+        <token regexp="yes">(brasil|python|javascript|docker|kubernetes)</token>
+      </pattern>
+      <message>Nomes próprios devem ser capitalizados: <suggestion>\1</suggestion></message>
+      <short>Capitalização de nomes próprios</short>
+      <example correction="Brasil">Eu moro no <marker>brasil</marker>.</example>
+    </rule>
+    
+  </category>
+  
+</rules>
