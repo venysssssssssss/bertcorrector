@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ==========================================
   # CORE SERVICES
@@ -81,7 +79,7 @@ services:
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8000:8000"
+      - "8888:8000"
     environment:
       - LANGUAGETOOL_URL=http://languagetool:8010
       - SPACY_URL=http://spacy-enhancer:8020
