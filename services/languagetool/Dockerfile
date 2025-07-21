@@ -6,13 +6,8 @@ LABEL maintainer="bertcorrector-team"
 LABEL version="2.0.0"
 LABEL description="LanguageTool server with custom Portuguese rules and monitoring"
 
-# Install additional tools
+# Switch to root to copy files
 USER root
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    jq \
-    && rm -rf /var/lib/apt/lists/*
 
 # Configure Java options for better performance
 ENV JAVA_OPTS="-Xmx4g -Xms2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication"

@@ -25,7 +25,7 @@ services:
       - correction-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8010/v2/check"]
+      test: ["CMD-SHELL", "timeout 10 bash -c '</dev/tcp/localhost/8010' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
