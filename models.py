@@ -3,13 +3,61 @@ import torch
 import re
 import logging
 from difflib import SequenceMatcher
-from corrections_dict import get_direct_correction, get_word_correction, should_preserve_word
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Dicionário de correções comuns integrado
+COMMON_CORRECTIONS = {
+    # Concordância verbal
+    'eu gosta': 'eu gosto',
+    'tu gosta': 'tu gostas',
+    'nos fomos': 'nós fomos',
+    'nos temos': 'nós temos',
+    'voces tem': 'vocês têm',
+    
+    # Ortografia comum
+    'dous': 'dois',
+    'tres': 'três', 
+    'voce': 'você',
+    'esta': 'está',
+    'rapido': 'rápido',
+    'facil': 'fácil',
+    'util': 'útil',
+    'otimo': 'ótimo',
+    'musica': 'música',
+    'medico': 'médico',
+    'publico': 'público',
+    'pratico': 'prático',
+    'critica': 'crítica',
+    'matematica': 'matemática',
+    'amanha': 'amanhã',
+    'arvore': 'árvore',
+    'numero': 'número',
+    'pagina': 'página',
+    'rapida': 'rápida',
+    'ultima': 'última',
+    'proximo': 'próximo',
+    'basico': 'básico',
+    'grafico': 'gráfico',
+    'fantastico': 'fantástico',
+    'automatico': 'automático',
+    'economico': 'econômico',
+    'academico': 'acadêmico',
+}
+
+# Palavras que devem ser preservadas
+PRESERVE_WORDS = {
+    'casa', 'carro', 'amor', 'vida', 'tempo', 'pessoa', 'mundo', 'mão', 'dia',
+    'noite', 'sol', 'lua', 'água', 'fogo', 'terra', 'ar', 'homem', 'mulher',
+    'criança', 'família', 'amigo', 'trabalho', 'escola', 'livro', 'filme',
+    'música', 'comida', 'cidade', 'país', 'brasil', 'português', 'inglês',
+    'joão', 'maria', 'pedro', 'ana', 'carlos', 'josé', 'antonio', 'francisco',
+    'muito', 'bem', 'bom', 'boa', 'grande', 'pequeno', 'novo', 'velho'
+}
 
 def load_model():
     model_name = "neuralmind/bert-base-portuguese-cased"
@@ -23,9 +71,41 @@ def similarity(a, b):
     """Calcula similaridade entre duas strings"""
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
+def should_preserve_word(word):
+    """Verifica se uma palavra deve ser preservada"""
+    word_lower = word.lower()
+    
+    # Preserva nomes próprios
+    if word[0].isupper() and len(word) > 1:
+        return True
+    
+    # Preserva palavras muito curtas
+    if len(word) <= 2:
+        return True
+    
+    # Preserva palavras corretas conhecidas
+    if word_lower in PRESERVE_WORDS:
+        return True
+    
+    # Preserva números
+    if word.isdigit():
+        return True
+    
+    return False
+
+def get_direct_correction(phrase):
+    """Busca correção direta no dicionário"""
+    phrase_lower = phrase.lower().strip()
+    return COMMON_CORRECTIONS.get(phrase_lower)
+
+def get_word_correction(word):
+    """Busca correção para palavra individual"""
+    word_lower = word.lower().strip()
+    return COMMON_CORRECTIONS.get(word_lower)
+
 def correct_text(model, tokenizer, text, threshold=0.2):
     """
-    Correção híbrida: dicionário + BERT de forma conservadora
+    Correção híbrida: dicionário + BERT de forma muito conservadora
     """
     # Preprocessamento
     original_text = text
@@ -67,12 +147,17 @@ def correct_text(model, tokenizer, text, threshold=0.2):
             logger.info(f"Correção de palavra: '{clean_word}' -> '{direct_word_correction}'")
             continue
         
-        # Se não encontrou correção direta, usa BERT de forma muito conservadora
-        if len(clean_word) >= 3 and clean_word.isalpha():
-            bert_correction = correct_word_with_bert(
-                model, tokenizer, clean_word, words, i, threshold
-            )
-            corrected_words.append(bert_correction + punctuation)
+        # Para outras palavras, mantém original (BERT muito conservador)
+        # Apenas aplica BERT se a palavra parece ter erro óbvio
+        if len(clean_word) >= 4 and clean_word.isalpha():
+            # Verifica se tem características de erro (falta de acentos em palavras longas)
+            if any(char in clean_word.lower() for char in ['a', 'e', 'i', 'o', 'u']) and len(clean_word) > 5:
+                bert_correction = correct_word_with_bert_conservative(
+                    model, tokenizer, clean_word, words, i, threshold
+                )
+                corrected_words.append(bert_correction + punctuation)
+            else:
+                corrected_words.append(word)
         else:
             corrected_words.append(word)
     
@@ -87,31 +172,31 @@ def correct_text(model, tokenizer, text, threshold=0.2):
     if result != original_text:
         logger.info(f"Correção final: '{original_text}' -> '{result}'")
     else:
-        logger.info("Nenhuma correção aplicada")
+        logger.info("Nenhuma correção aplicada - texto mantido")
     
     return result
 
-def correct_word_with_bert(model, tokenizer, word, words, word_index, threshold):
+def correct_word_with_bert_conservative(model, tokenizer, word, words, word_index, threshold):
     """
-    Usa BERT apenas para correções muito conservadoras
+    Usa BERT apenas para correções extremamente conservadoras
     """
-    # Contexto limitado para não alterar significado
-    context_size = 1  # Apenas 1 palavra de cada lado
+    # Só aplica se tem contexto
+    if word_index == 0 and len(words) == 1:
+        return word
     
-    context_before = ""
-    context_after = ""
+    # Contexto mínimo
+    context_before = words[word_index - 1] if word_index > 0 else ""
+    context_after = words[word_index + 1] if word_index < len(words) - 1 else ""
     
-    if word_index > 0:
-        context_before = words[word_index - 1]
-        # Remove pontuação do contexto
-        context_before = re.sub(r'[^\w\s]', '', context_before).strip()
+    # Remove pontuação do contexto
+    context_before = re.sub(r'[^\w\s]', '', context_before).strip()
+    context_after = re.sub(r'[^\w\s]', '', context_after).strip()
     
-    if word_index < len(words) - 1:
-        context_after = words[word_index + 1]
-        # Remove pontuação do contexto
-        context_after = re.sub(r'[^\w\s]', '', context_after).strip()
+    # Sem contexto suficiente, não corrige
+    if not context_before and not context_after:
+        return word
     
-    # Cria contexto simples
+    # Cria contexto
     if context_before and context_after:
         context = f"{context_before} [MASK] {context_after}"
     elif context_before:
@@ -119,54 +204,58 @@ def correct_word_with_bert(model, tokenizer, word, words, word_index, threshold)
     elif context_after:
         context = f"[MASK] {context_after}"
     else:
-        # Sem contexto suficiente, não corrige
         return word
     
-    # Tokeniza
-    inputs = tokenizer(context, return_tensors="pt", padding=True, truncation=True).to(device)
-    
-    # Encontra posição do MASK
-    mask_token_id = tokenizer.mask_token_id
-    mask_positions = (inputs["input_ids"] == mask_token_id).nonzero(as_tuple=True)
-    
-    if len(mask_positions[1]) == 0:
-        return word
-    
-    mask_pos = mask_positions[1][0].item()
-    
-    with torch.no_grad():
-        outputs = model(**inputs)
-        logits = outputs.logits[0, mask_pos]
-        probabilities = torch.softmax(logits, dim=-1)
+    try:
+        # Tokeniza
+        inputs = tokenizer(context, return_tensors="pt", padding=True, truncation=True).to(device)
         
-        # Probabilidade da palavra original
-        original_tokens = tokenizer.encode(word, add_special_tokens=False)
-        if not original_tokens:
-            return word
-            
-        original_token_id = original_tokens[0]
-        original_prob = probabilities[original_token_id].item()
+        # Encontra posição do MASK
+        mask_token_id = tokenizer.mask_token_id
+        mask_positions = (inputs["input_ids"] == mask_token_id).nonzero(as_tuple=True)
         
-        # Threshold muito alto para ser conservador
-        if original_prob > threshold:
+        if len(mask_positions[1]) == 0:
             return word
         
-        # Procura apenas candidatos muito similares
-        top_k = torch.topk(probabilities, k=5)  # Menos candidatos
+        mask_pos = mask_positions[1][0].item()
         
-        for prob, token_id in zip(top_k.values, top_k.indices):
-            candidate = tokenizer.decode([token_id]).strip()
+        with torch.no_grad():
+            outputs = model(**inputs)
+            logits = outputs.logits[0, mask_pos]
+            probabilities = torch.softmax(logits, dim=-1)
             
-            # Filtros muito rigorosos
-            if (candidate and 
-                candidate.isalpha() and 
-                len(candidate) >= 2 and
-                candidate.lower() != word.lower() and
-                similarity(word, candidate) > 0.7 and  # 70% similaridade mínima
-                abs(len(word) - len(candidate)) <= 2 and  # Diferença máxima de 2 caracteres
-                prob.item() > original_prob * 2):  # Deve ser MUITO melhor
+            # Probabilidade da palavra original
+            original_tokens = tokenizer.encode(word, add_special_tokens=False)
+            if not original_tokens:
+                return word
                 
-                logger.info(f"Correção BERT conservadora: '{word}' -> '{candidate}' (sim: {similarity(word, candidate):.2f})")
-                return candidate
-        
+            original_token_id = original_tokens[0]
+            original_prob = probabilities[original_token_id].item()
+            
+            # Threshold extremamente alto para ser ultra-conservador
+            if original_prob > 0.1:  # Se tem pelo menos 10% de probabilidade, mantém
+                return word
+            
+            # Procura apenas o melhor candidato muito similar
+            top_k = torch.topk(probabilities, k=3)
+            
+            for prob, token_id in zip(top_k.values, top_k.indices):
+                candidate = tokenizer.decode([token_id]).strip()
+                
+                # Filtros ultra-rigorosos
+                if (candidate and 
+                    candidate.isalpha() and 
+                    len(candidate) >= 2 and
+                    candidate.lower() != word.lower() and
+                    similarity(word, candidate) > 0.8 and  # 80% similaridade mínima
+                    abs(len(word) - len(candidate)) <= 1 and  # Diferença máxima de 1 caractere
+                    prob.item() > original_prob * 3):  # Deve ser 3x melhor
+                    
+                    logger.info(f"Correção BERT ultra-conservadora: '{word}' -> '{candidate}' (sim: {similarity(word, candidate):.2f})")
+                    return candidate
+            
+            return word
+            
+    except Exception as e:
+        logger.error(f"Erro no BERT para palavra '{word}': {e}")
         return word
