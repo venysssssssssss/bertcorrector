@@ -113,11 +113,14 @@ services:
 
   # Prometheus - Coleta de Métricas
   prometheus:
-    image: prom/prometheus:latest
+    build:
+      context: ./monitoring/prometheus
+      dockerfile: Dockerfile
     container_name: prometheus
     ports:
       - "9090:9090"
     command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=30d'
       - '--web.enable-lifecycle'
@@ -136,7 +139,9 @@ services:
 
   # Grafana - Dashboards
   grafana:
-    image: grafana/grafana:latest
+    build:
+      context: ./monitoring/grafana
+      dockerfile: Dockerfile
     container_name: grafana
     ports:
       - "3000:3000"
@@ -146,7 +151,6 @@ services:
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana-data:/var/lib/grafana
-      - /LLM/bertcorrector/bertcorrector/monitoring/grafana:/etc/grafana/provisioning:ro
     networks:
       - monitoring-network
     restart: unless-stopped
