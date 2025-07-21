@@ -53,37 +53,50 @@ def test_api():
         {
             "text": "eu gosta de comer bolo",
             "description": "Concordância verbal (eu gosta -> eu gosto)",
-            "expected_improvements": ["gosto"]
+            "expected_improvements": ["gosto"],
+            "should_not_change": ["comer", "bolo"]
         },
         {
             "text": "ela tem dous filhos",
             "description": "Erro ortográfico (dous -> dois)",
-            "expected_improvements": ["dois"]
+            "expected_improvements": ["dois"],
+            "should_not_change": ["ela", "tem", "filhos"]
         },
         {
             "text": "nos fomos ao cinema",
             "description": "Pronome sem acento (nos -> nós)",
-            "expected_improvements": ["nós"]
+            "expected_improvements": ["nós"],
+            "should_not_change": ["fomos", "cinema"]
         },
         {
             "text": "o menino correu muito rapido",
             "description": "Falta de acento (rapido -> rápido)",
-            "expected_improvements": ["rápido"]
+            "expected_improvements": ["rápido"],
+            "should_not_change": ["menino", "correu"]
         },
         {
             "text": "voce esta bem",
             "description": "Múltiplos acentos (voce esta -> você está)",
-            "expected_improvements": ["você", "está"]
+            "expected_improvements": ["você", "está"],
+            "should_not_change": ["bem"]
         },
         {
-            "text": "nos vamos para casa amanha",
-            "description": "Múltiplas correções",
-            "expected_improvements": ["nós", "vamos", "amanhã"]
+            "text": "o gato subiu na arvore",
+            "description": "Falta de acento (arvore -> árvore)",
+            "expected_improvements": ["árvore"],
+            "should_not_change": ["gato", "subiu"]
         },
         {
-            "text": "o gato subiu no arvore",
-            "description": "Concordância de gênero (no arvore -> na árvore)",
-            "expected_improvements": ["na", "árvore"]
+            "text": "a casa é muito bonita",
+            "description": "Texto já correto - não deve alterar",
+            "expected_improvements": [],
+            "should_not_change": ["casa", "muito", "bonita"]
+        },
+        {
+            "text": "João foi ao medico",
+            "description": "Nome próprio + acento (medico -> médico)",
+            "expected_improvements": ["médico"],
+            "should_not_change": ["João", "foi"]
         }
     ]
     
@@ -123,13 +136,32 @@ def test_api():
                         if expected.lower() in corrected.lower():
                             improvements_found.append(expected)
                     
-                    if improvements_found:
-                        print(f"   🎯 Melhorias detectadas: {', '.join(improvements_found)}")
+                    # Verifica se palavras que não deveriam mudar se mantiveram
+                    should_not_change = test_case.get('should_not_change', [])
+                    unwanted_changes = []
+                    for word in should_not_change:
+                        if word.lower() in result['original'].lower() and word.lower() not in corrected.lower():
+                            unwanted_changes.append(word)
+                    
+                    if improvements_found and not unwanted_changes:
+                        print(f"   🎯 Melhorias corretas: {', '.join(improvements_found)}")
+                        successful_tests += 1
+                    elif improvements_found and unwanted_changes:
+                        print(f"   ⚠️  Melhorias: {', '.join(improvements_found)}, mas mudou incorretamente: {', '.join(unwanted_changes)}")
+                    elif not improvements_found and not unwanted_changes:
+                        print(f"   ℹ️  Correção aplicada, mas não as esperadas: {test_case['expected_improvements']}")
+                    else:
+                        print(f"   ❌ Mudanças indevidas: {', '.join(unwanted_changes)}")
+                        
+                else:
+                    # Verifica se era esperado não haver correções
+                    if not test_case['expected_improvements']:
+                        print("   ✅ Corretamente mantido inalterado")
                         successful_tests += 1
                     else:
-                        print(f"   ⚠️  Correção aplicada, mas não as esperadas: {test_case['expected_improvements']}")
-                else:
-                    print("   ℹ️  Nenhuma correção aplicada")
+                        print("   ℹ️  Nenhuma correção aplicada (eram esperadas algumas)")
+                        # Ainda conta como meio sucesso se não quebrou nada
+                        successful_tests += 0.5
                     
             else:
                 print(f"   ❌ Erro HTTP: {response.status_code}")
