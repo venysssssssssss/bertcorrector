@@ -60,9 +60,3 @@ scrape_configs:
     static_configs:
       - targets: ['host.docker.internal:9323']
     scrape_interval: 30s
-
-# Storage configuration
-storage:
-  tsdb:
-    retention.time: 30d
-    retention.size: 10GB
