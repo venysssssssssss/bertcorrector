@@ -6,7 +6,7 @@ authors = ["BertCorrector Team <team@bertcorrector.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.14"
+python = "^3.12"
 fastapi = "^0.104.1"
 uvicorn = {extras = ["standard"], version = "^0.24.0"}
 spacy = "^3.7.2"
