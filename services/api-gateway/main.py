@@ -383,20 +383,20 @@ async def metrics():
 
 @app.post("/correct", response_model=CorrectionResponse)
 @limiter.limit("100/minute")  # Rate limit
-async def correct_text(request: CorrectionRequest, req: Request):
+async def correct_text(correction_request: CorrectionRequest, request: Request):
     """Main text correction endpoint"""
     try:
         # Check cache first (if Redis is available)
         cache_key = None
         if redis_client:
-            cache_key = f"correction:{hash(request.text)}:{request.language}:{request.threshold}"
+            cache_key = f"correction:{hash(correction_request.text)}:{correction_request.language}:{correction_request.threshold}"
             cached_result = redis_client.get(cache_key)
             if cached_result:
                 logger.info("Cache hit for correction request")
                 return CorrectionResponse.parse_raw(cached_result)
         
         # Perform correction
-        result = await orchestrator.correct_text(request)
+        result = await orchestrator.correct_text(correction_request)
         
         # Cache result (if Redis is available)
         if redis_client and cache_key:
@@ -404,7 +404,7 @@ async def correct_text(request: CorrectionRequest, req: Request):
         
         logger.info(
             "Text corrected successfully",
-            original_length=len(request.text),
+            original_length=len(correction_request.text),
             corrected_length=len(result.corrected_text),
             errors_found=len(result.languagetool_errors),
             suggestions_made=len(result.spacy_suggestions),
@@ -422,17 +422,17 @@ async def correct_text(request: CorrectionRequest, req: Request):
 # Backward compatibility endpoint
 @app.post("/corrigir", response_model=CorrectionResponse)
 @limiter.limit("100/minute")
-async def corrigir_texto(request: dict, req: Request):
+async def corrigir_texto(request_data: dict, request: Request):
     """Legacy endpoint for backward compatibility"""
     try:
         # Convert legacy request format
         correction_request = CorrectionRequest(
-            text=request.get("text", ""),
-            language=request.get("language", "pt-BR"),
-            threshold=request.get("threshold", 0.3)
+            text=request_data.get("text", ""),
+            language=request_data.get("language", "pt-BR"),
+            threshold=request_data.get("threshold", 0.3)
         )
         
-        return await correct_text(correction_request, req)
+        return await correct_text(correction_request, request)
         
     except Exception as e:
         logger.error("Error in legacy endpoint", error=str(e))
