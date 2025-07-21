@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir \
     python-multipart==0.0.9
 
 # Copia o código da aplicação
-COPY ./app ./app
+COPY ./app /app
 
 # Porta exposta
 EXPOSE 8000
