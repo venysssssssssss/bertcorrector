@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rules lang="pt-BR" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="../rules.xsd">
+
+    <!-- ================================================================== -->
+    <!-- REGRAS CUSTOMIZADAS PARA PORTUGUÊS BRASILEIRO -->
+    <!-- Focadas em correção ortográfica e gramatical avançada -->
+    <!-- ================================================================== -->
+
+    <category id="CONCORDANCIA_VERBAL" name="Concordância Verbal">
+        
+        <!-- Regra: Eu gosto/gosta -->
+        <rule id="EU_GOSTO" name="Concordância: Eu gosto">
+            <pattern>
+                <token regexp="yes">eu|Eu</token>
+                <token regexp="yes">gosta|ama|estuda|trabalha|mora|come|bebe</token>
+            </pattern>
+            <message>Erro de concordância verbal. Use a primeira pessoa do singular.</message>
+            <suggestion>
+                <match no="1"/>
+                <match no="2" regexp_match="gosta" regexp_replace="gosto"/>
+                <match no="2" regexp_match="ama" regexp_replace="amo"/>
+                <match no="2" regexp_match="estuda" regexp_replace="estudo"/>
+                <match no="2" regexp_match="trabalha" regexp_replace="trabalho"/>
+                <match no="2" regexp_match="mora" regexp_replace="moro"/>
+                <match no="2" regexp_match="come" regexp_replace="como"/>
+                <match no="2" regexp_match="bebe" regexp_replace="bebo"/>
+            </suggestion>
+            <example correction="Eu gosto">Eu gosta de música.</example>
+            <example>Eu gosto de música.</example>
+        </rule>
+
+        <!-- Regra: Nós fomos/foi -->
+        <rule id="NOS_FOMOS" name="Concordância: Nós fomos">
+            <pattern>
+                <token regexp="yes">nos|nós|Nos|Nós</token>
+                <token regexp="yes">foi|era|estava|tinha</token>
+            </pattern>
+            <message>Erro de concordância verbal. Use a primeira pessoa do plural.</message>
+            <suggestion>
+                <match no="1" regexp_match="nos" regexp_replace="nós"/>
+                <match no="1" regexp_match="Nos" regexp_replace="Nós"/>
+                <match no="2" regexp_match="foi" regexp_replace="fomos"/>
+                <match no="2" regexp_match="era" regexp_replace="éramos"/>
+                <match no="2" regexp_match="estava" regexp_replace="estávamos"/>
+                <match no="2" regexp_match="tinha" regexp_replace="tínhamos"/>
+            </suggestion>
+            <example correction="Nós fomos">Nos foi ao cinema.</example>
+            <example>Nós fomos ao cinema.</example>
+        </rule>
+
+        <!-- Regra: Plural com sujeito composto -->
+        <rule id="SUJEITO_COMPOSTO" name="Sujeito composto - plural">
+            <pattern>
+                <token/>
+                <token>e</token>
+                <token/>
+                <token regexp="yes">é|está|tem|vai|pode</token>
+            </pattern>
+            <message>Com sujeito composto, o verbo deve ir para o plural.</message>
+            <suggestion>
+                <match no="1"/>
+                <match no="2"/>
+                <match no="3"/>
+                <match no="4" regexp_match="é" regexp_replace="são"/>
+                <match no="4" regexp_match="está" regexp_replace="estão"/>
+                <match no="4" regexp_match="tem" regexp_replace="têm"/>
+                <match no="4" regexp_match="vai" regexp_replace="vão"/>
+                <match no="4" regexp_match="pode" regexp_replace="podem"/>
+            </suggestion>
+            <example correction="João e Maria são">João e Maria é amigos.</example>
+            <example>João e Maria são amigos.</example>
+        </rule>
+
+    </category>
+
+    <category id="CONCORDANCIA_NOMINAL" name="Concordância Nominal">
+        
+        <!-- Regra: Adjetivo com substantivo feminino plural -->
+        <rule id="FEMININO_PLURAL" name="Concordância feminino plural">
+            <pattern>
+                <token regexp="yes">as|As</token>
+                <token regexp="yes">\w+as</token>
+                <token regexp="yes">bonito|grande|pequeno|novo|velho|bom</token>
+            </pattern>
+            <message>O adjetivo deve concordar em gênero e número com o substantivo.</message>
+            <suggestion>
+                <match no="1"/>
+                <match no="2"/>
+                <match no="3" regexp_match="bonito" regexp_replace="bonitas"/>
+                <match no="3" regexp_match="grande" regexp_replace="grandes"/>
+                <match no="3" regexp_match="pequeno" regexp_replace="pequenas"/>
+                <match no="3" regexp_match="novo" regexp_replace="novas"/>
+                <match no="3" regexp_match="velho" regexp_replace="velhas"/>
+                <match no="3" regexp_match="bom" regexp_replace="boas"/>
+            </suggestion>
+            <example correction="As casas bonitas">As casas bonito.</example>
+            <example>As casas bonitas.</example>
+        </rule>
+
+    </category>
+
+    <category id="ORTOGRAFIA" name="Ortografia">
+        
+        <!-- Regra: Palavras comuns com erro ortográfico -->
+        <rule id="PALAVRAS_COMUNS" name="Correção de palavras comuns">
+            <pattern>
+                <token regexp="yes">dous|tres|voce|esta|rapido|facil|util|dificil|possivel</token>
+            </pattern>
+            <message>Erro ortográfico comum.</message>
+            <suggestion>
+                <match no="1" regexp_match="dous" regexp_replace="dois"/>
+                <match no="1" regexp_match="tres" regexp_replace="três"/>
+                <match no="1" regexp_match="voce" regexp_replace="você"/>
+                <match no="1" regexp_match="esta" regexp_replace="está"/>
+                <match no="1" regexp_match="rapido" regexp_replace="rápido"/>
+                <match no="1" regexp_match="facil" regexp_replace="fácil"/>
+                <match no="1" regexp_match="util" regexp_replace="útil"/>
+                <match no="1" regexp_match="dificil" regexp_replace="difícil"/>
+                <match no="1" regexp_match="possivel" regexp_replace="possível"/>
+            </suggestion>
+            <example correction="dois">Tenho dous filhos.</example>
+            <example>Tenho dois filhos.</example>
+        </rule>
+
+        <!-- Regra: X vs CH -->
+        <rule id="X_VS_CH" name="Uso correto de X e CH">
+            <pattern>
+                <token regexp="yes">meher|ahar|chave|chuva|enchada|chícara</token>
+            </pattern>
+            <message>Erro na grafia com X ou CH.</message>
+            <suggestion>
+                <match no="1" regexp_match="meher" regexp_replace="mexer"/>
+                <match no="1" regexp_match="ahar" regexp_replace="achar"/>
+                <match no="1" regexp_match="enchada" regexp_replace="enxada"/>
+                <match no="1" regexp_match="chícara" regexp_replace="xícara"/>
+            </suggestion>
+            <example correction="mexer">Vou meher no armário.</example>
+            <example>Vou mexer no armário.</example>
+        </rule>
+
+        <!-- Regra: SS vs Ç -->
+        <rule id="SS_VS_C" name="Uso correto de SS e Ç">
+            <pattern>
+                <token regexp="yes">prosesso|asesso|excessão|recepsão</token>
+            </pattern>
+            <message>Erro na grafia com SS ou Ç.</message>
+            <suggestion>
+                <match no="1" regexp_match="prosesso" regexp_replace="processo"/>
+                <match no="1" regexp_match="asesso" regexp_replace="acesso"/>
+                <match no="1" regexp_match="excessão" regexp_replace="exceção"/>
+                <match no="1" regexp_match="recepsão" regexp_replace="recepção"/>
+            </suggestion>
+            <example correction="processo">Este prosesso está incorreto.</example>
+            <example>Este processo está incorreto.</example>
+        </rule>
+
+    </category>
+
+    <category id="REGENCIA" name="Regência">
+        
+        <!-- Regra: Gostar DE -->
+        <rule id="GOSTAR_DE" name="Regência: gostar de">
+            <pattern>
+                <token regexp="yes">gosto|gosta|gostam|gostamos</token>
+                <token min="0" max="3"/>
+                <token regexp="yes" negate="yes">de|da|do|das|dos</token>
+                <token regexp="yes">\w+</token>
+            </pattern>
+            <message>O verbo "gostar" exige a preposição "de".</message>
+            <suggestion>
+                <match no="1"/> de <match no="4"/>
+            </suggestion>
+            <example correction="Eu gosto de">Eu gosto música.</example>
+            <example>Eu gosto de música.</example>
+        </rule>
+
+        <!-- Regra: Assistir A/AO -->
+        <rule id="ASSISTIR_A" name="Regência: assistir a">
+            <pattern>
+                <token regexp="yes">assisti|assistiu|assistimos|assistiram</token>
+                <token min="0" max="2"/>
+                <token regexp="yes">o|a|os|as</token>
+                <token regexp="yes">filme|peça|show|jogo|programa</token>
+            </pattern>
+            <message>O verbo "assistir" (no sentido de ver) exige a preposição "a".</message>
+            <suggestion>
+                <match no="1"/>
+                <match no="2"/>
+                <match no="3" regexp_match="o" regexp_replace="ao"/>
+                <match no="3" regexp_match="a" regexp_replace="à"/>
+                <match no="3" regexp_match="os" regexp_replace="aos"/>
+                <match no="3" regexp_match="as" regexp_replace="às"/>
+                <match no="4"/>
+            </suggestion>
+            <example correction="Assistimos ao filme">Assistimos o filme ontem.</example>
+            <example>Assistimos ao filme ontem.</example>
+        </rule>
+
+    </category>
+
+    <category id="CRASE" name="Crase">
+        
+        <!-- Regra: Ir A vs Ir À -->
+        <rule id="IR_A_FEMININO" name="Crase com palavras femininas">
+            <pattern>
+                <token regexp="yes">vou|vai|vamos|vão|fui|foi|fomos|foram</token>
+                <token min="0" max="2"/>
+                <token>a</token>
+                <token regexp="yes">escola|casa|praia|igreja|farmácia|cidade</token>
+            </pattern>
+            <message>Antes de palavras femininas, use crase (à).</message>
+            <suggestion>
+                <match no="1"/>
+                <match no="2"/>
+                à
+                <match no="4"/>
+            </suggestion>
+            <example correction="Vou à escola">Vou a escola hoje.</example>
+            <example>Vou à escola hoje.</example>
+        </rule>
+
+        <!-- Regra: Expressões de tempo -->
+        <rule id="CRASE_TEMPO" name="Crase em expressões de tempo">
+            <pattern>
+                <token>a</token>
+                <token regexp="yes">tarde|noite|manha</token>
+            </pattern>
+            <message>Em expressões de tempo, use crase.</message>
+            <suggestion>
+                à
+                <match no="2" regexp_match="manha" regexp_replace="manhã"/>
+                <match no="2" regexp_match="tarde" regexp_replace="tarde"/>
+                <match no="2" regexp_match="noite" regexp_replace="noite"/>
+            </suggestion>
+            <example correction="à tarde">Nos vemos a tarde.</example>
+            <example>Nos vemos à tarde.</example>
+        </rule>
+
+    </category>
+
+    <category id="ACENTUACAO" name="Acentuação">
+        
+        <!-- Regra: Oxítonas -->
+        <rule id="OXITONAS" name="Acentuação de oxítonas">
+            <pattern>
+                <token regexp="yes">cafe|sofa|avo|jabuti|tuiuiu</token>
+            </pattern>
+            <message>Oxítonas terminadas em a, e, o devem ser acentuadas.</message>
+            <suggestion>
+                <match no="1" regexp_match="cafe" regexp_replace="café"/>
+                <match no="1" regexp_match="sofa" regexp_replace="sofá"/>
+                <match no="1" regexp_match="avo" regexp_replace="avô"/>
+                <match no="1" regexp_match="jabuti" regexp_replace="jabuti"/>
+                <match no="1" regexp_match="tuiuiu" regexp_replace="tuiuiú"/>
+            </suggestion>
+            <example correction="café">Quero um cafe quente.</example>
+            <example>Quero um café quente.</example>
+        </rule>
+
+        <!-- Regra: Paroxítonas -->
+        <rule id="PAROXITONAS" name="Acentuação de paroxítonas">
+            <pattern>
+                <token regexp="yes">facil|util|dificil|fragil|agil|fossil|esteril</token>
+            </pattern>
+            <message>Paroxítonas terminadas em L devem ser acentuadas.</message>
+            <suggestion>
+                <match no="1" regexp_match="facil" regexp_replace="fácil"/>
+                <match no="1" regexp_match="util" regexp_replace="útil"/>
+                <match no="1" regexp_match="dificil" regexp_replace="difícil"/>
+                <match no="1" regexp_match="fragil" regexp_replace="frágil"/>
+                <match no="1" regexp_match="agil" regexp_replace="ágil"/>
+                <match no="1" regexp_match="fossil" regexp_replace="fóssil"/>
+                <match no="1" regexp_match="esteril" regexp_replace="estéril"/>
+            </suggestion>
+            <example correction="fácil">Isso é muito facil.</example>
+            <example>Isso é muito fácil.</example>
+        </rule>
+
+    </category>
+
+</rules>

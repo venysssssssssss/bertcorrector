@@ -1,0 +1,114 @@
+# Dicionário Personalizado para Português Brasileiro
+# Adicione palavras específicas que devem ser aceitas pelo corretor
+# Uma palavra por linha
+
+# Tecnologia e Internet
+smartphone
+wifi
+bluetooth
+download
+upload
+streaming
+podcast
+youtuber
+influencer
+startup
+freelancer
+e-commerce
+marketplace
+
+# Palavras Brasileiras Específicas
+açaí
+coxinha
+brigadeiro
+caipirinha
+feijoada
+sertanejo
+forró
+pagode
+sambista
+carioca
+paulista
+mineiro
+gaúcho
+baiano
+pernambucano
+
+# Expressões Modernas
+selfie
+hashtag
+emoji
+meme
+story
+feed
+post
+like
+follow
+follower
+trending
+viral
+
+# Nomes de Profissões Modernas
+desenvolvedor
+programador
+analista
+designer
+copywriter
+social_media
+community_manager
+product_manager
+scrum_master
+
+# Palavras Técnicas Aceitas
+software
+hardware
+framework
+database
+backend
+frontend
+fullstack
+DevOps
+machine_learning
+artificial_intelligence
+big_data
+cloud_computing
+
+# Marcas e Produtos (quando mencionados em contexto)
+Google
+Facebook
+Instagram
+WhatsApp
+YouTube
+LinkedIn
+Twitter
+TikTok
+Netflix
+Spotify
+Amazon
+Microsoft
+Apple
+
+# Gírias e Expressões Brasileiras Aceitas
+topzera
+massinha
+bacana
+maneiro
+dahora
+sinistro
+mitou
+lacrou
+arrasou
+bombou
+
+# Palavras Regionais Brasileiras
+tchê
+ôxe
+uai
+sô
+véi
+mano
+cara
+bicho
+galera
+turma
+pessoal

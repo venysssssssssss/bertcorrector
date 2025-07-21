@@ -1,0 +1,298 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # CORE SERVICES
+  # ==========================================
+  
+  # LanguageTool - Motor Principal de Correção
+  languagetool:
+    build:
+      context: ./services/languagetool
+      dockerfile: Dockerfile
+    container_name: languagetool-server
+    ports:
+      - "8010:8010"
+    environment:
+      - JAVA_OPTS=-Xmx4g -Xms2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+      - LANGUAGETOOL_PORT=8010
+      - LANGUAGETOOL_CONFIG=/app/config
+    volumes:
+      - ./rules:/app/rules:ro
+      - ./configs/languagetool:/app/config:ro
+      - languagetool-cache:/app/cache
+    networks:
+      - correction-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/v2/check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 6G
+        reservations:
+          cpus: '1.0'
+          memory: 4G
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8010"
+      - "prometheus.io/path=/metrics"
+
+  # SpaCy Enhancer - Análise Semântica
+  spacy-enhancer:
+    build:
+      context: ./services/spacy-enhancer
+      dockerfile: Dockerfile
+    container_name: spacy-enhancer
+    ports:
+      - "8020:8020"
+    environment:
+      - SPACY_MODEL=pt_core_news_lg
+      - SPACY_PORT=8020
+      - WORKERS=2
+      - MAX_TEXT_LENGTH=10000
+    volumes:
+      - spacy-models:/app/models
+    networks:
+      - correction-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 2G
+
+  # API Gateway - Orquestração
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - LANGUAGETOOL_URL=http://languagetool:8010
+      - SPACY_URL=http://spacy-enhancer:8020
+      - GATEWAY_WORKERS=4
+      - LOG_LEVEL=INFO
+      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_WINDOW=60
+    depends_on:
+      - languagetool
+      - spacy-enhancer
+    networks:
+      - correction-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # ==========================================
+  # MONITORING & OBSERVABILITY
+  # ==========================================
+
+  # Prometheus - Coleta de Métricas
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    networks:
+      - monitoring-network
+      - correction-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/api/v1/status/config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana - Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # JMX Exporter - Métricas Java
+  jmx-exporter:
+    image: sscaling/jmx-prometheus-exporter:latest
+    container_name: jmx-exporter
+    ports:
+      - "9999:9999"
+    environment:
+      - CONFIG_YML=/opt/jmx_exporter/config.yml
+    volumes:
+      - ./monitoring/jmx:/opt/jmx_exporter:ro
+    networks:
+      - monitoring-network
+      - correction-network
+    restart: unless-stopped
+    depends_on:
+      - languagetool
+
+  # Loki - Agregação de Logs
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki:/etc/loki:ro
+      - loki-data:/loki
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  # Promtail - Coleta de Logs
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./monitoring/promtail:/etc/promtail:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+  # ==========================================
+  # LOAD BALANCER & PROXY
+  # ==========================================
+
+  # NGINX - Proxy Reverso e Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./configs/nginx:/etc/nginx/conf.d:ro
+      - ./configs/ssl:/etc/ssl:ro
+      - nginx-logs:/var/log/nginx
+    networks:
+      - correction-network
+    restart: unless-stopped
+    depends_on:
+      - api-gateway
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # CACHE & SESSION STORE
+  # ==========================================
+
+  # Redis - Cache e Session Store
+  redis:
+    image: redis:alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - correction-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ==========================================
+# NETWORKS
+# ==========================================
+networks:
+  correction-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  monitoring-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# ==========================================
+# VOLUMES
+# ==========================================
+volumes:
+  # Application Data
+  languagetool-cache:
+    driver: local
+  spacy-models:
+    driver: local
+  
+  # Monitoring Data
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
+    driver: local
+  
+  # Infrastructure
+  redis-data:
+    driver: local
+  nginx-logs:
+    driver: local

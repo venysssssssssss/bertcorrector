@@ -1,0 +1,102 @@
+groups:
+  - name: languagetool-corrector-alerts
+    rules:
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(gateway_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate in API Gateway"
+          description: "Error rate is {{ $value }} for the last 5 minutes"
+
+      # High Latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(gateway_request_duration_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency in API Gateway"
+          description: "95th percentile latency is {{ $value }}s"
+
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "Service {{ $labels.instance }} has been down for more than 1 minute"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}%"
+
+      # LanguageTool Specific Alerts
+      - alert: LanguageToolHighLatency
+        expr: histogram_quantile(0.95, rate(correction_duration_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LanguageTool correction latency is high"
+          description: "95th percentile correction time is {{ $value }}s"
+
+      # SpaCy Service Issues
+      - alert: SpaCyServiceUnavailable
+        expr: spacy_requests_total{status="error"} > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SpaCy service having issues"
+          description: "SpaCy service has {{ $value }} errors in the last period"
+
+      # Redis Connection Issues
+      - alert: RedisConnectionFailed
+        expr: redis_connected_clients < 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connection issues"
+          description: "Redis has no connected clients"
+
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}%"
+
+      # Rate Limiting Triggered
+      - alert: RateLimitingTriggered
+        expr: increase(slowapi_requests_total{status="429"}[5m]) > 100
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "Rate limiting is being triggered frequently"
+          description: "{{ $value }} rate limit violations in the last 5 minutes"
