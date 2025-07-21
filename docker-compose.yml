@@ -126,7 +126,7 @@ services:
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
     volumes:
-      - ./monitoring/prometheus:/etc/prometheus:ro
+      - /LLM/bertcorrector/bertcorrector/monitoring/prometheus:/etc/prometheus:ro
       - prometheus-data:/prometheus
     networks:
       - monitoring-network
@@ -150,7 +150,7 @@ services:
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+      - /LLM/bertcorrector/bertcorrector/monitoring/grafana:/etc/grafana/provisioning:ro
     networks:
       - monitoring-network
     restart: unless-stopped
