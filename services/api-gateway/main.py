@@ -382,8 +382,8 @@ async def metrics():
     return generate_latest()
 
 @app.post("/correct", response_model=CorrectionResponse)
-@limiter.limit("100/minute")  # Rate limit
-async def correct_text(correction_request: CorrectionRequest, request: Request):
+# @limiter.limit("100/minute")  # Rate limit - temporarily disabled
+async def correct_text(correction_request: CorrectionRequest, request: Request = None):
     """Main text correction endpoint"""
     try:
         # Check cache first (if Redis is available)
@@ -421,8 +421,8 @@ async def correct_text(correction_request: CorrectionRequest, request: Request):
 
 # Backward compatibility endpoint
 @app.post("/corrigir", response_model=CorrectionResponse)
-@limiter.limit("100/minute")
-async def corrigir_texto(request_data: dict, request: Request):
+# @limiter.limit("100/minute")  # Rate limit - temporarily disabled
+async def corrigir_texto(request_data: dict, request: Request = None):
     """Legacy endpoint for backward compatibility"""
     try:
         # Convert legacy request format
